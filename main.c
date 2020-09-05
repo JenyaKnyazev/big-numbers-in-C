@@ -210,8 +210,10 @@ char * division(char *s,char *s2,int length_s,int length_s2){
     return res;
 }
 void clean_buff(){
-    while(getchar()!='\n');
-        getchar();
+    char ch;
+    do{
+        ch=getchar();
+    }while(ch!='\n');
 }
 void run(){
     char ch,*res;
