@@ -108,7 +108,7 @@ char * plus(char *s,char *s2,int *length_s1,int length_s2){
 }
 void remove_all_zero_digits_from_left(char **s,int *length){
     int i;
-    while(*length>1&&**s==0){
+    while(*length>1&&**s==0||**s=='0'&&*length>2){
         for(i=0;i<*length-1;i++)
             *((*s)+i)=*(*s+i+1);
         *s=(char*)realloc(*s,--(*length)*sizeof(char) );
@@ -132,6 +132,14 @@ void refresh2(char **s,int *length){
 */
 int compare_str(char *s,char *s2,int length_s,int length_s2){
     int i;
+    while(*s=='0'){
+        s++;
+        length_s--;
+    }
+    while(*s2=='0'){
+        s2++;
+        length_s2--;
+    }
     if(length_s>length_s2)
         return 1;
     if(length_s2>length_s)
@@ -149,26 +157,22 @@ int compare_str(char *s,char *s2,int length_s,int length_s2){
 */
 char * minus(char *s,char *s2,int *length_s,int length_s2){
     char *res,*m;
-    int i,r,length_res,length_m;
-    char_to_int(s);
-    char_to_int(s2);
-    if(compare_str(s,s2,*length_s,length_s2)==1){
-        res=copy(s,*length_s);
-        length_res=*length_s;
-        m=s2;
-        length_m=length_s2;
-    }else if(compare_str(s,s2,*length_s,length_s2)==-1){
-        res=copy(s2,length_s2);
-        length_res=length_s2;
-        m=s;
-        length_m=*length_s;
-    }else
-        return "0";
-    for(i=length_res-1,r=length_m-1;i>=0&&r>=0;i--,r--)
-        res[i]-=m[r];
+    int i,r,length_res=*length_s,length_m;
+    if(compare_str(s,s2,*length_s,length_s2)!=1){
+        res=(char*)malloc(sizeof(char)*2);
+        res[0]='0';
+        res[1]='\0';
+        *length_s=2;
+        return res;
+    }
+    res=copy(s,*length_s);
+    for(i=length_res-2,r=length_s2-2;i>=0&&r>=0;i--,r--)
+        res[i]-=s2[r];
+    char_to_int(res);
     refresh2(&res,&length_res);
     *length_s=length_res;
     int_to_char(res,length_res);
+
     return res;
 }
 /*
@@ -189,7 +193,25 @@ char * multiply(char *s,char *s2,int length_s,int length_s2){
     }
     return res;
 }
+char * multiply2(char *s,char *s2,int length_s,int length_s2){
+    char *res=(char*)malloc(sizeof(char)*(length_s+length_s2-1));
+    int r=length_s-2,i=length_s2-2,j,k,length=length_s2+length_s-1;
+    for(k=0;k<length;k++)
+        res[k]=0;
+    char_to_int(s);
+    char_to_int(s2);
+    for(k=0;r>=0;r--,k++){
+        for(i=length_s2-2,j=0;i>=0;i--,j++)
+            *(res+length-(k+j)-2)+=s[r]*s2[i];
+        refresh(&res,&length);
+    }
+    remove_all_zero_digits_from_left(&res,&length);
+    int_to_char(s,length_s);
+    int_to_char(s2,length_s2);
+    int_to_char(res,length);
 
+    return res;
+}
 char * division(char *s,char *s2,int length_s,int length_s2){
     char *res=(char*)malloc(sizeof(char)*2),*one=(char*)malloc(sizeof(char)*2);
     int length_res=2;
@@ -215,6 +237,45 @@ void clean_buff(){
         ch=getchar();
     }while(ch!='\n');
 }
+void add_to_end(char **s,char ch,int *length){
+    if(*length==0){
+        (*length)++;
+        *s=NULL;
+    }
+    (*s)=(char*)realloc(*s,(++(*length))*sizeof(char));
+    (*((*s)+*(length)-1))=0;
+    (*((*s)+(*length)-2))=ch;
+}
+char * division2(char *s,char *s2,int length_s,int length_s2){
+    char *res,*temp;
+    int i,length=1,length_res=1;
+    int n=0;
+    res=(char*)malloc(sizeof(char)*1);
+    temp=(char*)malloc(sizeof(char)*1);
+    res[0]='\0';
+    temp[0]='\0';
+    for(i=0;i<length_s-1;){
+        add_to_end(&temp,*(s+i),&length);
+        i++;
+        while(i<length_s-1&&compare_str(temp,s2,length,length_s2)==-1){
+            add_to_end(&temp,*(s+i),&length);
+            i++;
+            add_to_end(&res,'0',&length_res);
+        }
+        n=0;
+        while(compare_str(temp,s2,length,length_s2)!=-1){
+            temp=minus(temp,s2,&length,length_s2);
+            n++;
+        }
+        if(n){
+            add_to_end(&res,n+48,&length_res);
+        }else
+            add_to_end(&res,'0',&length_res);
+    }
+    remove_all_zero_digits_from_left(&res,&length_res);
+    free(temp);
+    return res;
+}
 void run(){
     char ch,*res;
     printf("Arithmetic calculations on big numbers floating point not supported\n");
@@ -236,10 +297,10 @@ void run(){
                 res=minus(p,p2,&p_size,p2_size);
                 break;
             case '*':
-                res=multiply(p,p2,p_size,p2_size);
+                res=multiply2(p,p2,p_size,p2_size);
                 break;
             case '/':
-                res=division(p,p2,p_size,p2_size);
+                res=division2(p,p2,p_size,p2_size);
                 break;
         }
         printf("\nResult = %s\n\n",res);
